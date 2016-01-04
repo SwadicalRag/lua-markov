@@ -26,17 +26,17 @@ end
 function Markov:getNextWord(word)
     if self.data[word] then
         local total = 0
-        for word,hits in pairs(self.data[word]) do
+        for nextWord,hits in pairs(self.data[word]) do
             total = total + hits
         end
 
         if total == 0 then return false end
 
         local target,val = math.random(1,total),0
-
-        for word,hits in pairs(self.data[word]) do
-            val = val + 1
-            if val == target then return word end
+        
+        for nextWord,hits in pairs(self.data[word]) do
+            if (val <= target) and ((val + hits) >= target) then return nextWord end
+            val = val + hits
         end
     else
         return false
@@ -54,8 +54,8 @@ function Markov:getStarterWord()
     local target,val = math.random(1,total),0
 
     for word,hits in pairs(self.starters) do
-        val = val + 1
-        if val == target then return word end
+        if (val <= target) and ((val + hits) >= target) then return word end
+        val = val + hits
     end
 end
 
