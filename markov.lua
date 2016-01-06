@@ -10,7 +10,7 @@ Markov.totals = {
 
 function Markov:Learn(str)
     local wordArray = {}
-    for word in str:gmatch("(%w+)") do
+    for word in str:gmatch("(%S+)") do
         wordArray[#wordArray + 1] = word
     end
 
