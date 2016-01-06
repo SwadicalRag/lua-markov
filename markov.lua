@@ -48,7 +48,7 @@ function Markov:getNextWord(word)
         local target,val = math.random(1,total),0
 
         for nextWord,hits in pairs(self.data[word]) do
-            if (nextWord ~= word) (val <= target) and ((val + hits) >= target) then return nextWord end
+            if (nextWord ~= word) and (val <= target) and ((val + hits) >= target) then return nextWord end
             val = val + hits
         end
     else
