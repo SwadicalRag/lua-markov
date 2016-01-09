@@ -30,30 +30,73 @@ function Markov:Learn(str)
 
     for i,word in ipairs(wordArray) do
         local nextWord = wordArray[i+1]
-        if nextWord then
+        local nextNextWord = wordArray[i+2]
+        if nextWord and nextNextWord then
             self.data[word] = self.data[word] or {}
-            self.data[word][nextWord] = self.data[word][nextWord] or 0
-            self.data[word][nextWord] = self.data[word][nextWord] + 1
-            self.totals.words[word] = self.totals.words[word] or 0
-            self.totals.words[word] = self.totals.words[word] + 1
+            self.totals.words[word] = self.totals.words[word] or {
+                [0] = 0
+            }
+            if not self.data[word][nextWord] then
+                self.data[word][nextWord] = {}
+                self.totals.words[word][0] = self.totals.words[word][0] + 1
+            end
+            self.data[word][nextWord][nextNextWord] = self.data[word][nextWord][nextNextWord] or 0
+            self.data[word][nextWord][nextNextWord] = self.data[word][nextWord][nextNextWord] + 1
+            self.totals.words[word][nextWord] = self.totals.words[word][nextWord] or 0
+            self.totals.words[word][nextWord] = self.totals.words[word][nextWord] + 1
         end
     end
 end
 
-function Markov:getNextWord(word)
-    if self.data[word] then
-        local total = self.totals.words[word] or 0
-        if total == 0 then return false end
+function Markov:getNextWord(wordArray)
+    local lastLastWord = wordArray[#wordArray-1]
+    local lastWord = wordArray[#wordArray]
 
-        local target,val = math.random(1,total),0
+    --[[print("======")]]
+    for i,v in ipairs(wordArray) do --[[print(i,v)]] end
+    --[[print("")]]
 
-        for nextWord,hits in pairs(self.data[word]) do
-            if (nextWord ~= word) and (val <= target) and ((val + hits) >= target) then return nextWord end
-            val = val + hits
-        end
-    else
+    if not lastWord then
+        --[[print("getNextWord failed: [1] ("..tostring(lastLastWord)..", "..tostring(lastWord)..")")]]
         return false
     end
+
+    if not lastLastWord then
+        if not self.data[lastWord] then
+            --[[print("getNextWord failed: [2] ("..tostring(lastLastWord)..", "..tostring(lastWord)..")")]]
+            return false
+        end
+
+        local total = self.totals.words[lastWord][0]
+        local target,val = math.random(1,total),1
+        for nextWord,_ in pairs(self.data[lastWord]) do
+            if (val >= target) then return nextWord end
+            val = val + 1
+        end
+
+        --[[print("getNextWord failed: [3] ("..tostring(lastLastWord)..", "..tostring(lastWord)..")")]]
+
+        return false
+    end
+
+    if self.data[lastLastWord] and self.data[lastLastWord][lastWord] then
+        local total = self.totals.words[lastLastWord][lastWord] or 0
+        if total == 0 then
+            --[[print("getNextWord failed: [4] ("..tostring(lastLastWord)..", "..tostring(lastWord)..")")]]
+            return false
+        end
+
+        local target,val = math.random(1,total),1
+
+        for nextWord,hits in pairs(self.data[lastLastWord][lastWord]) do
+            --[[print(nextWord,val,val+hits,target,total)]]
+            if (val <= target) and ((val + hits) > target) then return nextWord end
+            val = val + hits
+        end
+    end
+
+    --[[print("getNextWord failed: [5] ("..tostring(lastLastWord)..", "..tostring(lastWord)..")")]]
+    return false
 end
 
 function Markov:getStarterWord()
@@ -75,29 +118,28 @@ function Markov:getEndingProbability(word)
     return self.enders[word]/total
 end
 
-function Markov:Generate(length,startingWord)
-    local lastWord = startingWord or self:getStarterWord()
-    local sentence = lastWord.." "
+function Markov:Generate(startingWord,length)
+    local wordArray = {startingWord or self:getStarterWord()}
     if length then
         for i=1,length do
-            lastWord = self:getNextWord(lastWord)
-            if lastWord then
-                sentence = sentence..lastWord.." "
+            local nextWord = self:getNextWord(wordArray)
+            if nextWord then
+                wordArray[#wordArray+1] = nextWord
             else
                 break
             end
         end
     else
         while true do
-            lastWord = self:getNextWord(lastWord)
-            if lastWord then
-                sentence = sentence..lastWord.." "
+            local nextWord = self:getNextWord(wordArray)
+            if nextWord then
+                wordArray[#wordArray+1] = nextWord
             else
                 break
             end
         end
     end
-    return sentence:sub(1,-2)
+    return table.concat(wordArray," ")
 end
 
 return Markov
