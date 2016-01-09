@@ -118,8 +118,16 @@ function Markov:getEndingProbability(word)
     return self.enders[word]/total
 end
 
-function Markov:Generate(startingWord,length)
-    local wordArray = {startingWord or self:getStarterWord()}
+function Markov:Generate(start,length)
+    local wordArray = {}
+    if start then
+        for word in start:gmatch("(%S+)") do
+            wordArray[#wordArray+1] = word
+        end
+    else
+        wordArray = {self:getStarterWord()}
+    end
+
     if length then
         for i=1,length do
             local nextWord = self:getNextWord(wordArray)
